@@ -1,0 +1,11 @@
+[package]
+name = "waas-meta"
+version = "0.0.0"
+edition = "2018"
+publish = false
+authors = ["you"]
+[dependencies.waas]
+path = ".."
+
+[dependencies.multiversx-sc-meta]
+version = "0.44.0"

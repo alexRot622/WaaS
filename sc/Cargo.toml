@@ -1,0 +1,17 @@
+[package]
+name = "waas"
+version = "0.0.0"
+authors = ["you"]
+edition = "2018"
+publish = false
+
+[lib]
+path = "src/waas.rs"
+
+[dev-dependencies]
+num-bigint = "0.4.2"
+
+[dev-dependencies.multiversx-sc-scenario]
+version = "0.44.0"
+[dependencies.multiversx-sc]
+version = "0.44.0"
