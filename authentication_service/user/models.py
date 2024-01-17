@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
+from django.core.signing import Signer, BadSignature
+from .utils import mx_wallet
 
 
 class UserManager(BaseUserManager):
@@ -11,7 +13,10 @@ class UserManager(BaseUserManager):
             raise ValueError('Users require an email field')
         email = self.normalize_email(email)
         user = self.model(email=email, **extra_fields)
+        user.save(using=self._db)
         user.set_password(password)
+        pem_key = mx_wallet(user.id)
+        user.set_pem_key(pem_key)
         user.save(using=self._db)
         return user
 
@@ -37,5 +42,15 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
 
-    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     objects = UserManager()
+    pem_key = models.TextField()
+
+    def set_pem_key(self, pem_key):
+        self.pem_key = pem_key
+
+    def get_pem_key(self):
+        signer = Signer()
+        try:
+            return signer.unsign(self.pem_key)
+        except BadSignature:
+            return None

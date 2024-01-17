@@ -11,6 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 import subprocess
+from .utils import mx_contract
 
 class VerifyView(APIView):
     @swagger_auto_schema(manual_parameters=[openapi.Parameter('Authorization', openapi.IN_HEADER, description="Authorization token", type=openapi.TYPE_STRING)])
@@ -27,14 +28,6 @@ class VerifyView(APIView):
         if not token_obj.user.is_active:
             return Response({'error': 'User not active'}, status=status.HTTP_401_UNAUTHORIZED)
         return Response({'message': 'Token is valid'})
-    
-def mx_call(function, args):
-    # TODO: need to use "str:[arg]" for string arguments
-    # TODO: strings are probably base64 encoded
-    cmd = f"mxpy contract call {address} \
-            --recall-nonce --pem=${pem} --gas-limit=50000000 \
-            --function=\"{function}\" --arguments {' '.join(args)} --send"
-    return subprocess.run(cmd, shell=True, capture_output=True).stdout.decode()
 
 
 class BalanceView(APIView):
@@ -49,8 +42,8 @@ class BalanceView(APIView):
         print(request.user)
         
         user = request.user.username
-        password = request.user.password  # Replace with the actual way to get the user's password
-        return Response({"balance": mx_call("balance", [user, password])})
+        password = request.user.password
+        return Response({"balance": mx_contract("balance", [user, password])})
 
 
 class TransferView(APIView):
@@ -72,7 +65,7 @@ class TransferView(APIView):
         password = request.user.password  # Replace with the actual way to get the user's password
         recipient = request.data.get('recipient')
         amount = request.data.get('amount')
-        return Response({"result": mx_call("transfer", [user, password, recipient, amount])})
+        return Response({"result": mx_contract(user.pem_key, "transfer", [user, password, recipient, amount])})
 
 
 class CreateView(APIView):
@@ -87,7 +80,7 @@ class CreateView(APIView):
     def post(self, request, format=None):
         user = request.data.get("user")
         password = request.data.get("password")
-        return Response({"result": mx_call("create", [user, password])})
+        return Response({"result": mx_contract(user.pem_key, "create", [user, password])})
 
 
 class MintView(APIView):
@@ -107,7 +100,8 @@ class MintView(APIView):
     def post(self, request, format=None):
         recipient = request.data.get("recipient")
         amount = request.data.get("amount")
-        return Response({"result": mx_call("mint", [recipient, amount])})
+        user = request.user.username
+        return Response({"result": mx_contract(user.pem_key, "mint", [recipient, amount])})
 
 
 class HistoryView(APIView):
@@ -124,4 +118,4 @@ class HistoryView(APIView):
         key = request.data.get("key")
         user = request.user.username
         password = request.user.password
-        return Response({"result": mx_call("history", [key, user, password])})
+        return Response({"result": mx_contract(user.pem_key, "history", [key, user, password])})
