@@ -24,8 +24,8 @@ multiversx_sc_wasm_adapter::endpoints! {
         add_account => add_account
         mint => mint
         transfer => transfer
-        get_account_balance => get_account_balance
         get_account_history => get_account_history
+        get_account_balance => get_account_balance
         getAccountBalance => account_balance
         getHistory => history
     )
