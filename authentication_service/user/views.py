@@ -38,6 +38,7 @@ class TransferView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     @swagger_auto_schema(
         operation_description="API for transferring funds",
+        manual_parameters=[openapi.Parameter('Authorization', openapi.IN_HEADER, description="Authorization token", type=openapi.TYPE_STRING)],
         request_body=openapi.Schema(
             type=openapi.TYPE_OBJECT,
             properties={
@@ -48,11 +49,10 @@ class TransferView(APIView):
         responses={200: openapi.Response(description='OK')},
     )
     def post(self, request, format=None):
-        user = request.user.username
-        password = request.user.password  # Replace with the actual way to get the user's password
+        user = request.user
         recipient = request.data.get('recipient')
         amount = request.data.get('amount')
-        return Response({"result": mx_contract(user.pem_key, "transfer", [user, password, recipient, amount])})
+        return Response({"result": mx_contract(user.pem_key, "transfer", [user.username, recipient, amount])})
 
 
 class MintView(APIView):
@@ -70,14 +70,16 @@ class MintView(APIView):
         responses={200: openapi.Response(description='OK')},
     )
     def post(self, request, format=None):
-        recipient = request.data.get("recipient")
+        user = request.user
         amount = request.data.get("amount")
         user = request.user.username
-        return Response({"result": mx_contract(user.pem_key, "mint", [recipient, amount])})
+        return Response({"result": mx_contract(user.pem_key, "mint", [user.username, amount])})
 
 
 def process_history(data):
-    lines = bytes.fromhex(data).split(b'\n')
+    pattern = re.compile(r'"hex": "([0-9a-fA-F]+)"')
+    hex_data = pattern.search(data).group(1)
+    lines = bytes.fromhex(hex_data).split(b'\n')
     transactions = []
     for l in lines[:-1]:
         ammount, sender, receiver = l.split(b' ')
