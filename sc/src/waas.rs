@@ -1,7 +1,5 @@
 #![no_std]
 
-use multiversx_sc::types::heap::Vec;
-
 multiversx_sc::imports!();
 multiversx_sc::derive_imports!();
 
@@ -38,6 +36,7 @@ pub trait WalletContract {
     }
 
     #[endpoint]
+    #[only_owner]
     fn transfer(&self, from: ManagedBuffer, to: ManagedBuffer, amount: BigUint) {
         let mut account_balance = self.account_balance();
         let mut from_balance = account_balance
@@ -57,25 +56,32 @@ pub trait WalletContract {
     }
 
     #[endpoint]
+    fn get_account_history(&self, account: ManagedBuffer) -> ManagedBuffer {
+        let history = self.history();
+        // Cannot use Vec, must append to ManagedBuffer
+        let mut account_history = ManagedBuffer::new();
+        for (amount, from, to) in history.iter() {
+            if from == account || to == account {
+                // Format: "amount from to"
+                account_history.append(&amount.to_bytes_be_buffer());
+                // Add space
+                account_history.append_bytes(&[32u8]);
+                account_history.append(&from);
+                // Add space
+                account_history.append_bytes(&[32u8]);
+                account_history.append(&to);
+                // Add newline
+                account_history.append_bytes(&[10u8]);
+            }
+        }
+        account_history
+    }
+
+    #[endpoint]
     fn get_account_balance(&self, account: ManagedBuffer) -> BigUint {
         let account_balance = self.account_balance();
         let balance = account_balance.get(&account).unwrap_or(BigUint::from(0u32));
         balance
-    }
-
-    #[endpoint]
-    fn get_account_history(
-        &self,
-        account: ManagedBuffer,
-    ) -> Vec<(BigUint, ManagedBuffer, ManagedBuffer)> {
-        // Get transactions where account is either sender or receiver
-        let history = self
-            .history()
-            .iter()
-            .filter(|(_amount, from, to)| from == &account || to == &account)
-            .map(|(amount, from, to)| (amount.clone(), from.clone(), to.clone()))
-            .collect();
-        history
     }
 
     #[view(getAccountBalance)]
