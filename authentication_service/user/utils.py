@@ -4,7 +4,7 @@ import os
 SMART_CONTRACT_ADDRESS = 'erd1qqqqqqqqqqqqqpgqujkufkm6yvhnnhz6qsgn03wzeppz724xzrmqzlgsug'
 
 def mx_contract(pem_path, function, args):
-    args = [f'str:{arg}' for arg in args]
+    args = [f'str:{arg}' if type(arg) == str else str(arg) for arg in args]
     cmd = f"mxpy contract call {SMART_CONTRACT_ADDRESS} \
             --recall-nonce --pem=${pem_path} --gas-limit=50000000 \
             --function=\"{function}\" --arguments {' '.join(args)} --send"
